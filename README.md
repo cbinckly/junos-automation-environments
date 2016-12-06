@@ -58,6 +58,10 @@ vagrant ssh ubuntu_west
 vagrant ssh vsrx
 ```
 
+The credentials for the VMs are:
+ - vsrx: root / Juniper
+ - ubuntu*: vagrant/vagrant
+
 Environments
 ------------
 
