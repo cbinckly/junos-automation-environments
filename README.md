@@ -46,11 +46,11 @@ vagrant up
 
 For the east_west environment:
 ```
-cd simple/
+cd east_west/
 vagrant up
 ```
 
-To connect to the vms in the environment, use vagrant ssh:
+To connect to the VMs in the environment, use vagrant ssh:
 ```
 vagrant ssh ubuntu
 vagrant ssh ubuntu_east
