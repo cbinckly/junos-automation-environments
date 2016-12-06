@@ -1,0 +1,8 @@
+Host 172.16.0.2
+  User root
+  IdentityFile /home/vagrant/.ssh/vsrx_key
+
+Host vsrx
+  HostName 172.16.0.2
+  User root
+  IdentityFile /home/vagrant/.ssh/vsrx_key

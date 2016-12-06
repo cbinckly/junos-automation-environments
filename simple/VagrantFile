@@ -1,0 +1,123 @@
+# OpenLab Automation Building Blocks - Vagrant File
+#
+# This VagrantFile describes a small environment composed of an 
+# Ubuntu VM and a vSRX that can be used to learn and test some 
+# of the automation building blocks discussed in the 
+# OpenLab Automation Building Blocks webcast.
+#
+
+# Vagrant plugins for JUNOS and Host Shell interaction are required
+# Install all required plugins if they aren't already present on the system.
+required_plugins = %w(vagrant-junos vagrant-host-shell)
+
+required_plugins.each do |plugin|
+  system "vagrant plugin install #{plugin}" unless Vagrant.has_plugin? plugin
+end
+
+# Define the vagrant environment, using configuration API version 2.
+Vagrant.configure(2) do |config|
+
+  is_windows = Vagrant::Util::Platform.windows?
+  # install git and add C:\Program Files\Git\usr\bin to PATH
+  # or run "set PATH=%PATH%;C:\Program Files\Git\usr\bin" in terminal(works for duration of terminal)
+
+  # Define the vSRX settings
+  config.vm.define :vsrx do |vsrx|
+    vsrx.vm.hostname = :vsrx
+    vsrx.vm.box = 'vsrx'
+    if is_windows
+      vsrx.vm.box_url = '.\boxes\juniper-ffp-12.1X47-D15.4-packetmode.box'
+    else
+      vsrx.vm.box_url = './boxes/juniper-ffp-12.1X47-D15.4-packetmode.box'
+    end
+
+    # Define a private network. This will be connected to interface
+    # ge-0/0/1 on the vSRX.
+    vsrx.vm.network :private_network, ip: '172.16.0.2'
+
+    # Specify the virtual machine resource requirements.
+    vsrx.vm.provider :virtualbox do |vb|
+      vb.gui = false
+      vb.cpus = 2 # needs 2 to boot?
+      vb.memory = 512
+    end
+  end
+
+  # Define the Ubuntu VM settings
+  config.vm.define :ubuntu do |ubuntu|
+    ubuntu.vm.hostname = :ubuntu
+    ubuntu.vm.box = 'ubuntu'
+    if is_windows
+      ubuntu.vm.box = '.\boxes\ubuntu1404-desktop.box'
+    else
+      ubuntu.vm.box = './boxes/ubuntu1404-desktop.box'
+    end
+
+    # Attach the ubuntu VM to the same private network as the vSRX
+    # with a different IP Address.
+    ubuntu.vm.network :private_network, ip: '172.16.0.3'
+
+    # Specify the virtual machine resource requirements.
+    ubuntu.vm.provider :virtualbox do |vb|
+      vb.gui = true
+      vb.cpus = 1
+      vb.memory = 1024 # works with 1024
+    end
+
+    # Pre-install shared SSH keys on the ubuntu host for passwordless access
+    if is_windows
+      ubuntu.vm.provision :file, source: '.vagrant\machines\vsrx\virtualbox\private_key', destination: '/home/vagrant/.ssh/vsrx_key'
+      ubuntu.vm.provision :file, source: 'vm_config_files\ssh_config', destination: '/home/vagrant/.ssh/config'
+      ubuntu.vm.synced_folder 'shared', '/home/vagrant/Desktop/shared'
+    else
+      ubuntu.vm.provision :file, source: '.vagrant/machines/vsrx/virtualbox/private_key', destination: '/home/vagrant/.ssh/vsrx_key'
+      ubuntu.vm.provision :file, source: 'vm_config_files/ssh_config', destination: '/home/vagrant/.ssh/config'
+      ubuntu.vm.synced_folder 'shared', '/home/vagrant/Desktop/shared'
+    end
+
+    # Stop network manager from taking over eth1
+    ubuntu.vm.provision :shell, run: :always, inline: <<-SHELL
+      sudo service network-manager stop
+      sudo ifdown eth1
+      sudo ifup eth1
+    SHELL
+
+    # Provisioning script (install software)
+    ubuntu.vm.provision :shell, inline: <<-SHELL
+      # Tell APT to run in non-interactive mode during package install
+      DEBIAN_FRONTEND=noninteractive
+
+      # Update the sources.list to use sources from within Europe instead
+      # of the default repositories in the US.
+      sudo mv /etc/apt/sources.list /etc/apt/sources.list.bkp
+      sudo curl https://repogen.simplylinux.ch/txt/trusty/sources_e62c13ddf31ae36733b976fea221843e99d300ec.txt | sudo tee /etc/apt/sources.list
+
+      # Update the cache of packages that apt maintains lically
+      sudo apt-get update -y
+
+      # Install base packages, including dependencies for junos-eznc (PyEZ)
+      sudo apt-get install -y screen python python-dev python-pip python3 python3-pip python3-dev libxml2-dev libxslt1-dev libz-dev libffi-dev libssl-dev libyaml-dev
+
+      # Install junos-eznc (PyEZ) for both python2 and python3.
+      sudo pip install cyptography
+      sudo pip install -U junos-eznc
+      sudo pip3 install cyptography
+      sudo pip3 install -U junos-eznc
+      sudo pip install -U distribute
+
+      # Install Ansible version 2.0+ from a custom PPA
+      sudo apt-get install -y software-properties-common
+      sudo apt-add-repository ppa:ansible/ansible
+      sudo apt-get install -y ansible
+      sudo apt-get install -y git
+
+      # Install Sublime text to facilitate editing.
+      cd /home/vagrant/Desktop
+      sudo add-apt-repository -y ppa:webupd8team/sublime-text-2
+      sudo apt-get update -y
+      sudo apt-get install -y sublime-text
+    SHELL
+
+  end
+end
+
