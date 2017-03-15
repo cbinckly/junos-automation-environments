@@ -110,6 +110,8 @@ ubuntu_vms.each do |name, config_values|
 
       # Update the cache of packages that apt maintains locally
       sudo apt-get update -y
+      # Upgrade any dated packages
+      sudo apt-get upgrade -y
 
       # Install base packages, including dependencies for junos-eznc (PyEZ)
       sudo apt-get install -y screen python python-dev python-pip python3 python3-pip python3-dev libxml2-dev libxslt1-dev libz-dev libffi-dev libssl-dev libyaml-dev
