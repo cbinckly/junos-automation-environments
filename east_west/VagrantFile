@@ -24,12 +24,7 @@ Vagrant.configure(2) do |config|
   # Define the vSRX settings
   config.vm.define :vsrx do |vsrx|
     vsrx.vm.hostname = :vsrx
-    vsrx.vm.box = 'vsrx'
-    if is_windows
-      vsrx.vm.box_url = '.\boxes\juniper-ffp-12.1X47-D15.4-packetmode.box'
-    else
-      vsrx.vm.box_url = './boxes/juniper-ffp-12.1X47-D15.4-packetmode.box'
-    end
+    vsrx.vm.box = 'juniper/ffp-12.1X47-D15.4'
 
     # Define a private network. This will be connected to interface
     # ge-0/0/1 on the vSRX.
@@ -62,12 +57,7 @@ ubuntu_vms.each do |name, config_values|
   # Define the Ubuntu VM settings
   config.vm.define name do |ubuntu|
     ubuntu.vm.hostname = config_values[:hostname]
-    ubuntu.vm.box = 'ubuntu'
-    if is_windows
-      ubuntu.vm.box = '.\boxes\ubuntu1404-desktop.box'
-    else
-      ubuntu.vm.box = './boxes/ubuntu1404-desktop.box'
-    end
+    ubuntu.vm.box = 'ubuntu/trusty32'
 
     # Attach the ubuntu VM to the same private network as the vSRX
     # with a different IP Address.
